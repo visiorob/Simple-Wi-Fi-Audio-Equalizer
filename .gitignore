@@ -19,6 +19,8 @@ cmake-build-debug/*
 .vscode/*
 build/*
 doc/*
+managed_components/*
+dependencies.lock
 workspace.code-workspace
 sdkconfig
 sdkconfig.old
