@@ -15,6 +15,7 @@ CTestTestfile.cmake
 *.old
 .idea/*
 .DS_Store
+.clangd
 cmake-build-debug/*
 .vscode/*
 build/*
