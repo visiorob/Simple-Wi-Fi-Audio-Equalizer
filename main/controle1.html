@@ -170,122 +170,6 @@
   <div class="signature">ENGENHEIROS DO HAWAII</div>
 
   <script>
-    // --- Representação de números complexos ---
-    function complex(re, im) { return { re, im }; }
-    function add(a, b) { return { re: a.re + b.re, im: a.im + b.im }; }
-    function mul(a, b) { return { re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }; }
-    function expj(theta) { return { re: Math.cos(theta), im: Math.sin(theta) }; }
-
-    // --- IFFT manual ---
-    function ifft(X) {
-      const N = X.length;
-      let x = new Array(N);
-      for (let n = 0; n < N; n++) {
-        let sum = complex(0, 0);
-        for (let k = 0; k < N; k++) {
-          const angle = (2 * Math.PI * k * n) / N;
-          sum = add(sum, mul(X[k], expj(angle)));
-        }
-        x[n] = { re: sum.re / N, im: sum.im / N };
-      }
-      return x;
-    }
-
-    // --- FFTSHIFT ---
-    function fftshift(arr) {
-      const N = arr.length;
-      const half = Math.floor(N / 2)+1;
-      return arr.slice(half).concat(arr.slice(0, half));
-    }
-
-    // --- Estado global dos ganhos ---
-    let gains = { low: 1.0, low_mid: 1.0, mid: 1.0, high_mid: 1.0, high: 1.0 };
-
-    const ids = {
-      low: 'lowValue',
-      low_mid: 'lowMidValue',
-      mid: 'midValue',
-      high_mid: 'highMidValue',
-      high: 'highValue'
-    };
-
-    const N_taps = 65; // ímpar
-    const first_half_length = Math.floor(N_taps / 2) + 1; // 33
-
-    // --- Construir primeira metade ---
-    function buildFirstHalf() {
-      const fh = new Array(first_half_length).fill(1.0);
-      fh.fill(gains.low, 0, 1);
-      fh.fill(gains.low_mid, 1, 2);
-      fh.fill(gains.mid, 2, 8);
-      fh.fill(gains.high_mid, 8, 20);
-      fh.fill(gains.high, 20, 33);
-      return fh;
-    }
-
-    // --- Construir resposta simétrica ---
-    function buildSymmetricResponse() {
-      const first_half = buildFirstHalf();
-      const second_half = first_half.slice(1).reverse();
-      return first_half.concat(second_half);
-    }
-
-    // --- Debounce timer ---
-    let sendTimeout;
-
-    // --- Função principal ---
-    function updateGain(band, value) {
-      const gain = value / 100;
-      gains[band] = gain;
-      document.getElementById(ids[band]).innerText = gain.toFixed(2);
-
-      const symmetric = buildSymmetricResponse();
-
-      // Converte para complexos
-      let X = symmetric.map(v => complex(v, 0));
-
-      // IFFT manual
-      let fir = ifft(X);
-
-      // Extrai parte real
-      let fir_real = fir.map(c => c.re);
-
-      // FFTSHIFT
-      let shifted = fftshift(fir_real);
-
-      const ganho = 2 ** 15; // 32768
-
-      // aplica o ganho e converte para inteiro
-      const js_integer = shifted.map(v => Math.trunc(v * ganho));
-
-      console.clear();
-      console.log("Gains:", gains);
-      console.log("Resposta simétrica:", symmetric);
-      console.log("FIR (real):", fir_real);
-      console.log("FIR (fftshifted):", shifted);
-      console.log("Coeficientes FIR inteiros:", js_integer);
-
-      // --- debounce para envio ---
-      clearTimeout(sendTimeout);
-      sendTimeout = setTimeout(() => {
-        fetch("/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ coeffs: js_integer })
-        })
-        .then(() => console.log("Enviado para ESP32-S3:", js_integer))
-        .catch(err => console.error("Erro no envio:", err));
-      }, 500); // espera 500ms após o último movimento
-
-    }
-
-    // Inicializa
-    window.addEventListener('DOMContentLoaded', () => {
-      updateGain('low', 100);
-    });
-  </script>
-
-  <!-- <script>
     function updateGain(band, value) {
       const gain = value / 100;
       const ids = {
@@ -298,6 +182,6 @@
       document.getElementById(ids[band]).innerText = gain.toFixed(2);
       fetch("/update?band=" + band + "&gain=" + gain);
     }
-  </script> -->
+  </script>
 </body>
 </html>
