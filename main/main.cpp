@@ -159,6 +159,10 @@ void audio_task(void* param) {
 
 // --- Setup ---
 void setup() {
+    for (int i = 0; i < FIR_ORDER; i++) {
+        fir_coeffs[i] = 1;
+        fir_coeffs2[i] = 1;
+    }
     fir_coeffs_Queue = xQueueCreate(1, sizeof(fir_coeffs));
     controle_len = controle_html_end - controle_html_start;
     Serial.begin(115200);
